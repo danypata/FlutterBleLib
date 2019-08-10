@@ -1,11 +1,8 @@
 package com.polidea.flutterblelib.wrapper;
 
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
-import com.polidea.flutterblelib.BleData;
-import com.polidea.flutterblelib.utils.StringUtils;
 import com.polidea.rxandroidble.RxBleConnection;
 import com.polidea.rxandroidble.RxBleDevice;
 
@@ -26,13 +23,13 @@ public class Device {
         this.connection = connection;
     }
 
-    public void setServices(@NonNull List<Service> services) {
-        this.services = services;
-    }
-
     @Nullable
     public List<Service> getServices() {
         return services;
+    }
+
+    public void setServices(@NonNull List<Service> services) {
+        this.services = services;
     }
 
     public RxBleDevice getRxBleDevice() {

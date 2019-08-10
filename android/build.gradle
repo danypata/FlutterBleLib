@@ -69,6 +69,7 @@ protobuf {
 }
 
 dependencies {
-    implementation "com.polidea.rxandroidble:rxandroidble:1.4.3"
+    implementation "com.polidea.rxandroidble2:rxandroidble:1.10.1"
     implementation 'com.google.protobuf:protobuf-lite:3.0.1'
+    implementation 'androidx.annotation:annotation:1.0.0'
 }

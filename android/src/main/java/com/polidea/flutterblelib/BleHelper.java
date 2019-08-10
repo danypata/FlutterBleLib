@@ -9,10 +9,10 @@ import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.util.Base64;
 import android.util.SparseArray;
+
+import androidx.annotation.Nullable;
 
 import com.polidea.flutterblelib.exception.CannotMonitorCharacteristicException;
 import com.polidea.flutterblelib.exception.CharacteristicNotFoundException;
@@ -58,17 +58,11 @@ public class BleHelper {
     private final ConnectedDeviceContainer connectedDevices;
 
     private final ConnectingDevicesContainer connectingDevices;
-
-    private SparseArray<Service> discoveredServices = new SparseArray<>();
-
-    private SparseArray<Characteristic> discoveredCharacteristics = new SparseArray<>();
-
     private final TransactionsContainer transactions = new TransactionsContainer();
-
     private final Context context;
-
     private final StringUtils stringUtils;
-
+    private SparseArray<Service> discoveredServices = new SparseArray<>();
+    private SparseArray<Characteristic> discoveredCharacteristics = new SparseArray<>();
     private RxBleClient rxBleClient;
 
     private Subscription scanDevicesSubscription;
@@ -135,7 +129,7 @@ public class BleHelper {
         successAction.onSuccess(null);
     }
 
-    private void safeStartDeviceScan(ScanSettingsWrapper scanSettingsWrapper ,  final OnErrorAction errorAction) {
+    private void safeStartDeviceScan(ScanSettingsWrapper scanSettingsWrapper, final OnErrorAction errorAction) {
         if (rxBleClient == null) {
             throw new IllegalStateException("BleManager not created when tried to start device scan");
         }
@@ -808,11 +802,11 @@ public class BleHelper {
     }
 
     void monitorCharacteristicForDevice(final String deviceId,
-                                               final String serviceUUID,
-                                               final String characteristicUUID,
-                                               final String transactionId,
-                                               final OnSuccessAction<Void> successAction,
-                                               final OnErrorAction errorAction) {
+                                        final String serviceUUID,
+                                        final String characteristicUUID,
+                                        final String transactionId,
+                                        final OnSuccessAction<Void> successAction,
+                                        final OnErrorAction errorAction) {
 
         final Characteristic characteristic = getCharacteristicOrReject(
                 deviceId, serviceUUID, characteristicUUID, errorAction);
@@ -824,10 +818,10 @@ public class BleHelper {
     }
 
     void monitorCharacteristicForService(final int serviceIdentifier,
-                                                final String characteristicUUID,
-                                                final String transactionId,
-                                                final OnSuccessAction<Void> successAction,
-                                                final OnErrorAction errorAction) {
+                                         final String characteristicUUID,
+                                         final String transactionId,
+                                         final OnSuccessAction<Void> successAction,
+                                         final OnErrorAction errorAction) {
 
         final Characteristic characteristic = getCharacteristicOrReject(
                 serviceIdentifier, characteristicUUID, errorAction);
@@ -839,9 +833,9 @@ public class BleHelper {
     }
 
     void monitorCharacteristic(final int characteristicIdentifier,
-                                      final String transactionId,
-                                      final OnSuccessAction<Void> successAction,
-                                      final OnErrorAction errorAction) {
+                               final String transactionId,
+                               final OnSuccessAction<Void> successAction,
+                               final OnErrorAction errorAction) {
 
         final Characteristic characteristic = getCharacteristicOrReject(characteristicIdentifier, errorAction);
         if (characteristic == null) {
@@ -1030,7 +1024,7 @@ public class BleHelper {
     }
 
     private void cleanServicesAndCharacteristicsForDevice(Device device) {
-        for (int i = discoveredServices.size() - 1; i >=0; i--) {
+        for (int i = discoveredServices.size() - 1; i >= 0; i--) {
             int key = discoveredServices.keyAt(i);
             Service service = discoveredServices.get(key);
 
@@ -1038,7 +1032,7 @@ public class BleHelper {
                 discoveredServices.remove(key);
             }
         }
-        for (int i = discoveredCharacteristics.size() - 1; i >=0; i--) {
+        for (int i = discoveredCharacteristics.size() - 1; i >= 0; i--) {
             int key = discoveredCharacteristics.keyAt(i);
             Characteristic characteristic = discoveredCharacteristics.get(key);
 
@@ -1048,7 +1042,7 @@ public class BleHelper {
         }
     }
 
-    private <T> void sendEvent(Event event, T value){
+    private <T> void sendEvent(Event event, T value) {
         if (eventDelegate != null) {
             eventDelegate.dispatchEvent(event, value);
         }

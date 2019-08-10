@@ -3,8 +3,8 @@ package com.polidea.flutterblelib.wrapper;
 
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+
+import androidx.annotation.NonNull;
 
 import com.polidea.flutterblelib.utils.IdGenerator;
 import com.polidea.flutterblelib.utils.IdGeneratorKey;

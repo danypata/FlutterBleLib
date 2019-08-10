@@ -1,8 +1,9 @@
 package com.polidea.flutterblelib;
 
 
-import android.support.annotation.Nullable;
 import android.util.Base64;
+
+import androidx.annotation.Nullable;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.polidea.flutterblelib.utils.StringUtils;
@@ -50,9 +51,9 @@ class Converter {
                 : null;
         return new ScanSettingsWrapper(
                 new ScanSettings.Builder()
-                .setScanMode(scanDataMessage.getScanMode())
-                .setCallbackType(scanDataMessage.getCallbackType())
-                .build(),
+                        .setScanMode(scanDataMessage.getScanMode())
+                        .setCallbackType(scanDataMessage.getCallbackType())
+                        .build(),
                 uuids
         );
     }
@@ -164,7 +165,7 @@ class Converter {
                 .build();
     }
 
-    BleData.CharacteristicMessage convertToBleCharacteristicMessage(Characteristic characteristic, byte[] value){
+    BleData.CharacteristicMessage convertToBleCharacteristicMessage(Characteristic characteristic, byte[] value) {
         final Service service = characteristic.getService();
         if (value == null) {
             value = characteristic.getValue();
@@ -180,7 +181,7 @@ class Converter {
                 .setIsWritableWithoutResponse(characteristic.isWritableWithoutResponse())
                 .setIsNotificable(characteristic.isNotifiable())
                 .setIsIndicatable(characteristic.isIndicatable())
-                .setValue(value != null ?  Base64.encodeToString(value, Base64.NO_WRAP) : NO_STRING_VALUE)
+                .setValue(value != null ? Base64.encodeToString(value, Base64.NO_WRAP) : NO_STRING_VALUE)
                 .build();
 
     }

@@ -1,7 +1,7 @@
 package com.polidea.flutterblelib;
 
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import com.polidea.flutterblelib.wrapper.Device;
 
