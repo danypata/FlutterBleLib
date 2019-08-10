@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.polidea.flutterblelib.utils.IdGenerator;
 import com.polidea.flutterblelib.utils.IdGeneratorKey;

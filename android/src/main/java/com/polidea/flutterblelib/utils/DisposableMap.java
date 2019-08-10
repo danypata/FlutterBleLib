@@ -4,24 +4,25 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import rx.Subscription;
+import io.reactivex.disposables.Disposable;
+
 
 public class DisposableMap {
 
-    final private Map<String, Subscription> subscriptions = new HashMap<>();
+    final private Map<String, Disposable> subscriptions = new HashMap<>();
 
-    public void replaceSubscription(String key, Subscription subscription) {
-        Subscription oldSubscription = subscriptions.put(key, subscription);
-        if (oldSubscription != null && !oldSubscription.isUnsubscribed()) {
-            oldSubscription.unsubscribe();
+    public void replaceSubscription(String key, Disposable subscription) {
+        Disposable oldSubscription = subscriptions.put(key, subscription);
+        if (oldSubscription != null && !oldSubscription.isDisposed()) {
+            oldSubscription.dispose();
         }
     }
 
     public boolean removeSubscription(String key) {
-        Subscription subscription = subscriptions.remove(key);
+        Disposable subscription = subscriptions.remove(key);
         if (subscription == null) return false;
-        if (!subscription.isUnsubscribed()) {
-            subscription.unsubscribe();
+        if (!subscription.isDisposed()) {
+            subscription.dispose();
         }
         return true;
     }
@@ -30,12 +31,12 @@ public class DisposableMap {
      * Removes all subscriptions from map and unsubscribes them if they were subscribed.
      */
     public void removeAllSubscriptions() {
-        Iterator<Map.Entry<String, Subscription>> it = subscriptions.entrySet().iterator();
+        Iterator<Map.Entry<String, Disposable>> it = subscriptions.entrySet().iterator();
         while (it.hasNext()) {
-            Subscription subscription = it.next().getValue();
+            Disposable subscription = it.next().getValue();
             it.remove();
-            if (!subscription.isUnsubscribed()) {
-                subscription.unsubscribe();
+            if (!subscription.isDisposed()) {
+                subscription.dispose();
             }
         }
     }

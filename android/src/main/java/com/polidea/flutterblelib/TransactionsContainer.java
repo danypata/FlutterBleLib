@@ -3,13 +3,13 @@ package com.polidea.flutterblelib;
 
 import com.polidea.flutterblelib.utils.DisposableMap;
 
-import rx.Subscription;
+import io.reactivex.disposables.Disposable;
 
 public class TransactionsContainer {
 
     final private DisposableMap disposableMap = new DisposableMap();
 
-    public void replaceTransactionSubscription(String key, Subscription subscription) {
+    public void replaceTransactionSubscription(String key, Disposable subscription) {
         disposableMap.replaceSubscription(key, subscription);
     }
 

@@ -17,5 +17,6 @@ dependencies:
     sdk: flutter
   convert: "^2.0.1"
   protobuf: '^0.10.0'
+  rxdart: ^0.22.0
 
 

@@ -12,6 +12,7 @@ import android.os.Build;
 import android.util.Base64;
 import android.util.SparseArray;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.polidea.flutterblelib.exception.CannotMonitorCharacteristicException;
@@ -29,26 +30,27 @@ import com.polidea.flutterblelib.wrapper.Characteristic;
 import com.polidea.flutterblelib.wrapper.Device;
 import com.polidea.flutterblelib.wrapper.ScanSettingsWrapper;
 import com.polidea.flutterblelib.wrapper.Service;
-import com.polidea.rxandroidble.NotificationSetupMode;
-import com.polidea.rxandroidble.RxBleAdapterStateObservable;
-import com.polidea.rxandroidble.RxBleClient;
-import com.polidea.rxandroidble.RxBleConnection;
-import com.polidea.rxandroidble.RxBleDevice;
-import com.polidea.rxandroidble.RxBleDeviceServices;
-import com.polidea.rxandroidble.exceptions.BleCharacteristicNotFoundException;
-import com.polidea.rxandroidble.internal.RxBleLog;
-import com.polidea.rxandroidble.scan.ScanResult;
+import com.polidea.rxandroidble2.NotificationSetupMode;
+import com.polidea.rxandroidble2.RxBleAdapterStateObservable;
+import com.polidea.rxandroidble2.RxBleClient;
+import com.polidea.rxandroidble2.RxBleConnection;
+import com.polidea.rxandroidble2.RxBleDevice;
+import com.polidea.rxandroidble2.RxBleDeviceServices;
+import com.polidea.rxandroidble2.exceptions.BleCharacteristicNotFoundException;
+import com.polidea.rxandroidble2.internal.RxBleLog;
+import com.polidea.rxandroidble2.scan.ScanResult;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import rx.Observable;
-import rx.Observer;
-import rx.Subscription;
-import rx.functions.Action0;
-import rx.functions.Action1;
-import rx.functions.Func1;
+import io.reactivex.Observable;
+import io.reactivex.Observer;
+import io.reactivex.SingleObserver;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Action;
+import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
 
 public class BleHelper {
     private static final int NO_VALUE = -1;
@@ -65,10 +67,10 @@ public class BleHelper {
     private SparseArray<Characteristic> discoveredCharacteristics = new SparseArray<>();
     private RxBleClient rxBleClient;
 
-    private Subscription scanDevicesSubscription;
+    private Disposable scanDevicesSubscription;
 
     @Nullable
-    private Subscription adapterStateChangesSubscription;
+    private Disposable adapterStateChangesSubscription;
 
     private int currentLogLevel = RxBleLog.NONE;
 
@@ -106,11 +108,11 @@ public class BleHelper {
     void destroyClient() {
         // Subscriptions
         if (adapterStateChangesSubscription != null) {
-            adapterStateChangesSubscription.unsubscribe();
+            adapterStateChangesSubscription.dispose();
             adapterStateChangesSubscription = null;
         }
-        if (scanDevicesSubscription != null && !scanDevicesSubscription.isUnsubscribed()) {
-            scanDevicesSubscription.unsubscribe();
+        if (scanDevicesSubscription != null && !scanDevicesSubscription.isDisposed()) {
+            scanDevicesSubscription.dispose();
         }
         scanDevicesSubscription = null;
 
@@ -135,17 +137,19 @@ public class BleHelper {
         }
         scanDevicesSubscription = rxBleClient
                 .scanBleDevices(scanSettingsWrapper.getScanSetting(), scanSettingsWrapper.getScanFilters())
-                .subscribe(new Action1<ScanResult>() {
+                .subscribe(new Consumer<ScanResult>() {
+
                     @Override
-                    public void call(ScanResult rxBleScanResult) {
+                    public void accept(ScanResult rxBleScanResult) throws Exception {
                         sendEvent(Event.ScanEvent, converter.convertToScanResultMessage(rxBleScanResult));
                     }
-                }, new Action1<Throwable>() {
+                }, new Consumer<Throwable>() {
                     @Override
-                    public void call(Throwable throwable) {
+                    public void accept(Throwable throwable) throws Exception {
                         errorAction.onError(throwable);
                     }
                 });
+
     }
 
     void cancelTransaction(String transactionId) {
@@ -165,19 +169,20 @@ public class BleHelper {
         successAction.onSuccess(getCurrentState());
     }
 
-    private Subscription monitorAdapterStateChanges(Context context) {
+    private Disposable monitorAdapterStateChanges(Context context) {
         return new RxBleAdapterStateObservable(context)
-                .map(new Func1<RxBleAdapterStateObservable.BleAdapterState, BleData.BluetoothStateMessage>() {
+                .map(new Function<RxBleAdapterStateObservable.BleAdapterState, BleData.BluetoothStateMessage>() {
                     @Override
-                    public BleData.BluetoothStateMessage call(RxBleAdapterStateObservable.BleAdapterState bleAdapterState) {
+                    public BleData.BluetoothStateMessage apply(RxBleAdapterStateObservable.BleAdapterState bleAdapterState) throws Exception {
                         return rxAndroidBleAdapterStateToReactNativeBluetoothState(bleAdapterState);
                     }
                 })
-                .subscribe(new Action1<BleData.BluetoothStateMessage>() {
+                .subscribe(new Consumer<BleData.BluetoothStateMessage>() {
                     @Override
-                    public void call(BleData.BluetoothStateMessage state) {
-                        sendEvent(Event.StateChangeEvent, state);
+                    public void accept(BleData.BluetoothStateMessage bluetoothStateMessage) throws Exception {
+                        sendEvent(Event.StateChangeEvent, bluetoothStateMessage);
                     }
+
                 });
     }
 
@@ -226,8 +231,8 @@ public class BleHelper {
     }
 
     void stopDeviceScan() {
-        if (scanDevicesSubscription != null && !scanDevicesSubscription.isUnsubscribed()) {
-            scanDevicesSubscription.unsubscribe();
+        if (scanDevicesSubscription != null && !scanDevicesSubscription.isDisposed()) {
+            scanDevicesSubscription.dispose();
         }
         scanDevicesSubscription = null;
     }
@@ -249,33 +254,32 @@ public class BleHelper {
         }
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             final SafeAction<BleData.BleDeviceMessage> safeAction = new SafeAction<>(successAction, errorAction);
-            final Subscription subscription = connection
+            connection
                     .requestMtu(mtu)
-                    .doOnUnsubscribe(new Action0() {
+                    .doOnDispose(new Action() {
                         @Override
-                        public void call() {
+                        public void run() throws Exception {
                             safeAction.onError(new Throwable("Reject"));
                             transactions.removeTransactionSubscription(transactionId);
                         }
-                    }).subscribe(new Observer<Integer>() {
-                        @Override
-                        public void onCompleted() {
-                            transactions.removeTransactionSubscription(transactionId);
-                        }
+                    }).subscribe(new SingleObserver<Integer>() {
+                @Override
+                public void onSubscribe(Disposable d) {
+                    transactions.replaceTransactionSubscription(transactionId, d);
+                }
 
-                        @Override
-                        public void onError(Throwable e) {
-                            safeAction.onError(e);
-                            transactions.removeTransactionSubscription(transactionId);
-                        }
+                @Override
+                public void onSuccess(Integer integer) {
+                    safeAction.onSuccess(converter.convertToBleDeviceMessage(device.getRxBleDevice(), integer, NO_VALUE));
+                    transactions.removeTransactionSubscription(transactionId);
+                }
 
-                        @Override
-                        public void onNext(Integer integer) {
-                            safeAction.onSuccess(converter.convertToBleDeviceMessage(device.getRxBleDevice(), integer, NO_VALUE));
-                        }
-                    });
-
-            transactions.replaceTransactionSubscription(transactionId, subscription);
+                @Override
+                public void onError(Throwable e) {
+                    safeAction.onError(e);
+                    transactions.removeTransactionSubscription(transactionId);
+                }
+            });
         } else {
             successAction.onSuccess(converter.convertToBleDeviceMessage(device.getRxBleDevice(), connection.getMtu(), NO_VALUE));
         }
@@ -297,34 +301,33 @@ public class BleHelper {
         }
 
         final SafeAction<BleData.BleDeviceMessage> safeAction = new SafeAction<>(successAction, errorAction);
-        final Subscription subscription = connection
+        connection
                 .readRssi()
-                .doOnUnsubscribe(new Action0() {
+                .doOnDispose(new Action() {
                     @Override
-                    public void call() {
+                    public void run() throws Exception {
                         safeAction.onError(new Throwable("Reject"));
                         transactions.removeTransactionSubscription(transactionId);
                     }
-                })
-                .subscribe(new Observer<Integer>() {
-                    @Override
-                    public void onCompleted() {
-                        transactions.removeTransactionSubscription(transactionId);
-                    }
 
-                    @Override
-                    public void onError(Throwable e) {
-                        safeAction.onError(e);
-                        transactions.removeTransactionSubscription(transactionId);
-                    }
+                }).subscribe(new SingleObserver<Integer>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+                transactions.replaceTransactionSubscription(transactionId, d);
+            }
 
-                    @Override
-                    public void onNext(Integer rssi) {
-                        safeAction.onSuccess(converter.convertToBleDeviceMessage(device.getRxBleDevice(), NO_VALUE, rssi));
-                    }
-                });
+            @Override
+            public void onSuccess(Integer rssi) {
+                safeAction.onSuccess(converter.convertToBleDeviceMessage(device.getRxBleDevice(), NO_VALUE, rssi));
+                transactions.removeTransactionSubscription(transactionId);
+            }
 
-        transactions.replaceTransactionSubscription(transactionId, subscription);
+            @Override
+            public void onError(Throwable e) {
+                safeAction.onError(e);
+                transactions.removeTransactionSubscription(transactionId);
+            }
+        });
     }
 
 
@@ -356,27 +359,27 @@ public class BleHelper {
                                      final SafeAction<BleData.BleDeviceMessage> safeAction) {
         Observable<RxBleConnection> connect = device
                 .establishConnection(autoConnect)
-                .doOnUnsubscribe(new Action0() {
+                .doOnDispose(new Action() {
                     @Override
-                    public void call() {
+                    public void run() {
                         safeAction.onError(new Throwable("Reject"));
                         onDeviceDisconnected(device);
                     }
                 });
 
         if (requestMtu > 0) {
-            connect = connect.flatMap(new Func1<RxBleConnection, Observable<RxBleConnection>>() {
+            connect = connect.flatMap(new Function<RxBleConnection, Observable<RxBleConnection>>() {
                 @Override
-                public Observable<RxBleConnection> call(final RxBleConnection rxBleConnection) {
+                public Observable<RxBleConnection> apply(final RxBleConnection rxBleConnection) throws Exception {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                         return rxBleConnection
                                 .requestMtu(requestMtu)
-                                .map(new Func1<Integer, RxBleConnection>() {
+                                .map(new Function<Integer, RxBleConnection>() {
                                     @Override
-                                    public RxBleConnection call(Integer integer) {
+                                    public RxBleConnection apply(Integer integer) {
                                         return rxBleConnection;
                                     }
-                                });
+                                }).toObservable();
                     } else {
                         return Observable.just(rxBleConnection);
                     }
@@ -384,16 +387,23 @@ public class BleHelper {
             });
         }
 
-        final Subscription subscription = connect
+        connect
                 .subscribe(new Observer<RxBleConnection>() {
-                    @Override
-                    public void onCompleted() {
-                    }
 
                     @Override
                     public void onError(Throwable e) {
                         safeAction.onError(e);
                         onDeviceDisconnected(device);
+                    }
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        connectingDevices.replaceConnectingSubscription(device.getMacAddress(), d);
                     }
 
                     @Override
@@ -405,7 +415,7 @@ public class BleHelper {
                     }
                 });
 
-        connectingDevices.replaceConnectingSubscription(device.getMacAddress(), subscription);
+
     }
 
 
@@ -457,19 +467,16 @@ public class BleHelper {
 
         connection
                 .discoverServices()
-                .subscribe(new Observer<RxBleDeviceServices>() {
+                .subscribe(new SingleObserver<RxBleDeviceServices>() {
+
+
                     @Override
-                    public void onCompleted() {
-                        safeAction.onSuccess(converter.convertToBleDeviceMessage(device));
+                    public void onSubscribe(Disposable d) {
+
                     }
 
                     @Override
-                    public void onError(Throwable e) {
-                        safeAction.onError(e);
-                    }
-
-                    @Override
-                    public void onNext(RxBleDeviceServices rxBleDeviceServices) {
+                    public void onSuccess(RxBleDeviceServices rxBleDeviceServices) {
                         ArrayList<Service> services = new ArrayList<>();
                         for (BluetoothGattService gattService : rxBleDeviceServices.getBluetoothGattServices()) {
                             Service service = new Service(device, gattService);
@@ -482,6 +489,11 @@ public class BleHelper {
                             }
                         }
                         device.setServices(services);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        safeAction.onError(e);
                     }
                 });
     }
@@ -671,18 +683,27 @@ public class BleHelper {
         if (connection == null) {
             return;
         }
-        final Subscription subscription = connection
+        connection
                 .writeCharacteristic(characteristic.getNativeCharacteristic(), value)
-                .doOnUnsubscribe(new Action0() {
+                .doOnDispose(new Action() {
                     @Override
-                    public void call() {
+                    public void run() {
                         safeAction.onError(new Throwable("Canceled"));
                         transactions.removeTransactionSubscription(transactionId);
                     }
                 })
-                .subscribe(new Observer<byte[]>() {
+                .subscribe(new SingleObserver<byte[]>() {
+
+
                     @Override
-                    public void onCompleted() {
+                    public void onSubscribe(Disposable d) {
+                        transactions.replaceTransactionSubscription(transactionId, d);
+                    }
+
+                    @Override
+                    public void onSuccess(byte[] bytes) {
+                        characteristic.logValue("Write to", bytes);
+                        safeAction.onSuccess(converter.convertToBleCharacteristicMessage(characteristic, bytes));
                         transactions.removeTransactionSubscription(transactionId);
                     }
 
@@ -700,14 +721,10 @@ public class BleHelper {
                         transactions.removeTransactionSubscription(transactionId);
                     }
 
-                    @Override
-                    public void onNext(byte[] bytes) {
-                        characteristic.logValue("Write to", bytes);
-                        safeAction.onSuccess(converter.convertToBleCharacteristicMessage(characteristic, bytes));
-                    }
+
                 });
 
-        transactions.replaceTransactionSubscription(transactionId, subscription);
+
     }
 
     void readCharacteristicForDevice(final String deviceId,
@@ -763,18 +780,26 @@ public class BleHelper {
             return;
         }
 
-        final Subscription subscription = connection
+        connection
                 .readCharacteristic(characteristic.getNativeCharacteristic())
-                .doOnUnsubscribe(new Action0() {
+                .doOnDispose(new Action() {
                     @Override
-                    public void call() {
+                    public void run() {
                         safeAction.onError(new Throwable("Canceled"));
                         transactions.removeTransactionSubscription(transactionId);
                     }
                 })
-                .subscribe(new Observer<byte[]>() {
+                .subscribe(new SingleObserver<byte[]>() {
+
                     @Override
-                    public void onCompleted() {
+                    public void onSubscribe(Disposable d) {
+                        transactions.replaceTransactionSubscription(transactionId, d);
+                    }
+
+                    @Override
+                    public void onSuccess(byte[] bytes) {
+                        characteristic.logValue("Read from", bytes);
+                        safeAction.onSuccess(converter.convertToBleCharacteristicMessage(characteristic, bytes));
                         transactions.removeTransactionSubscription(transactionId);
                     }
 
@@ -791,14 +816,9 @@ public class BleHelper {
                         transactions.removeTransactionSubscription(transactionId);
                     }
 
-                    @Override
-                    public void onNext(byte[] bytes) {
-                        characteristic.logValue("Read from", bytes);
-                        safeAction.onSuccess(converter.convertToBleCharacteristicMessage(characteristic, bytes));
-                    }
                 });
 
-        transactions.replaceTransactionSubscription(transactionId, subscription);
+
     }
 
     void monitorCharacteristicForDevice(final String deviceId,
@@ -859,10 +879,10 @@ public class BleHelper {
         final boolean notifications = (properties & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0;
         final boolean indications = (properties & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0;
 
-        final Subscription subscription = Observable.just(connection)
-                .flatMap(new Func1<RxBleConnection, Observable<Observable<byte[]>>>() {
+        Observable.just(connection)
+                .flatMap(new Function<RxBleConnection, Observable<Observable<byte[]>>>() {
                     @Override
-                    public Observable<Observable<byte[]>> call(RxBleConnection connection) {
+                    public Observable<Observable<byte[]>> apply(RxBleConnection rxBleConnection) throws Exception {
                         if (notifications || indications) {
                             // NotificationSetupMode.COMPAT does not write CCC Descriptor on it's own
                             return connection.setupNotification(gattCharacteristic, NotificationSetupMode.COMPAT);
@@ -871,9 +891,9 @@ public class BleHelper {
                         return Observable.error(new CannotMonitorCharacteristicException(gattCharacteristic));
                     }
                 })
-                .flatMap(new Func1<Observable<byte[]>, Observable<byte[]>>() {
+                .flatMap(new Function<Observable<byte[]>, Observable<byte[]>>() {
                     @Override
-                    public Observable<byte[]> call(Observable<byte[]> observable) {
+                    public Observable<byte[]> apply(Observable<byte[]> observable) throws Exception {
                         BluetoothGattDescriptor cccDescriptor =
                                 gattCharacteristic.getDescriptor(Characteristic.CLIENT_CHARACTERISTIC_CONFIG_UUID);
                         if (cccDescriptor == null) {
@@ -883,28 +903,35 @@ public class BleHelper {
                                     ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
                                     : BluetoothGattDescriptor.ENABLE_INDICATION_VALUE;
                             // Keep in mind that every subscription to this observable will initiate another descriptor write
-                            return observable.mergeWith(connection.writeDescriptor(cccDescriptor, enableValue).ignoreElements());
+                            return observable.mergeWith(connection.writeDescriptor(cccDescriptor, enableValue).<byte[]>toObservable().ignoreElements());
                         }
                     }
+
                 })
-                .doOnUnsubscribe(new Action0() {
+                .doOnDispose(new Action() {
                     @Override
-                    public void call() {
+                    public void run() {
                         safeAction.onSuccess(null);
                         transactions.removeTransactionSubscription(transactionId);
                     }
                 })
                 .subscribe(new Observer<byte[]>() {
-                    @Override
-                    public void onCompleted() {
-                        safeAction.onSuccess(null);
-                        transactions.removeTransactionSubscription(transactionId);
-                    }
 
                     @Override
                     public void onError(Throwable e) {
                         safeAction.onError(e);
                         transactions.removeTransactionSubscription(transactionId);
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        safeAction.onSuccess(null);
+                        transactions.removeTransactionSubscription(transactionId);
+                    }
+
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        transactions.replaceTransactionSubscription(transactionId, d);
                     }
 
                     @Override
@@ -919,7 +946,7 @@ public class BleHelper {
                 });
 
         safeAction.onSuccess(null);
-        transactions.replaceTransactionSubscription(transactionId, subscription);
+
     }
 
     @Nullable
