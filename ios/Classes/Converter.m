@@ -45,17 +45,22 @@
     }
 }
 
-+ (BleDataScanResultMessage*) convertToScanResultMessage:(id _Nonnull) value {
++ (BleDataScanResultMessage*) convertToScanResultMessage:(NSArray * _Nonnull) value {
     BleDataScanResultMessage* bleDataScanResultMessage = [[BleDataScanResultMessage alloc] init];
-    //TODO add check for value length
-    bleDataScanResultMessage.rssi = value[1][@"rssi"];
+    NSLog(@"THIS IT %@", value[1]);
+    if(![value[1] isKindOfClass:[NSDictionary class]]) {
+        return bleDataScanResultMessage;
+    }
+    if([value[1][@"rssi"] isKindOfClass:[NSNumber class]]) {
+        bleDataScanResultMessage.rssi = [value[1][@"rssi"] intValue];
+    }
     bleDataScanResultMessage.bleDeviceMessage = [[BleDataBleDeviceMessage alloc] init];
     bleDataScanResultMessage.bleDeviceMessage.id_p = value[1][@"id"];
     NSString* name = value[1][@"name"];
     if(name != (id)[NSNull null]){
         bleDataScanResultMessage.bleDeviceMessage.name = name;
     }
-    bleDataScanResultMessage.bleDeviceMessage.rssi = value[1][@"rssi"];
+    bleDataScanResultMessage.bleDeviceMessage.rssi = [value[1][@"rssi"] intValue];
     bleDataScanResultMessage.bleDeviceMessage.mtu = value[1][@"mtu"];
     return bleDataScanResultMessage;
 }
@@ -68,15 +73,20 @@
     if(name != (id)[NSNull null]){
         bleDataBleDeviceMessage.name = name;
     }
-    bleDataBleDeviceMessage.rssi = value[@"rssi"];
-    bleDataBleDeviceMessage.mtu = value[@"mtu"];
+    if(![value[@"rssi"] isEqual:[NSNull null]]) {
+        bleDataBleDeviceMessage.rssi = [value[@"rssi"] intValue];
+    }
+    else {
+        bleDataBleDeviceMessage.rssi = 0;
+    }
+    bleDataBleDeviceMessage.mtu = [value[@"mtu"] intValue];
     return bleDataBleDeviceMessage;
 }
 
 + (BleDataServiceMessages* _Nonnull) convertToBleDataServiceMessages:(id _Nonnull) value {
     BleDataServiceMessages* bleDataServiceMessages = [[BleDataServiceMessages alloc] init];
     for(int index =0; index < [value count]; index++) {
-        BleDataBleDeviceMessage* bleDataServiceMessage = [Converter convertBleDataServiceMessage: value[index]];
+        BleDataServiceMessage* bleDataServiceMessage = [Converter convertBleDataServiceMessage: value[index]];
         [bleDataServiceMessages.serviceMessagesArray addObject: bleDataServiceMessage];
     }
     return bleDataServiceMessages;
@@ -104,7 +114,14 @@
 
 + (BleDataCharacteristicMessage* _Nonnull) convertToBleDataCharacteristicMessage: (id _Nonnull) value {
     BleDataCharacteristicMessage* bleDataCharacteristicMessage = [[BleDataCharacteristicMessage alloc] init];
-    bleDataCharacteristicMessage.id_p = ((NSNumber *) value[@"id"]).doubleValue;;
+    if(value == [NSNull null]) {
+        return bleDataCharacteristicMessage;
+    }
+    NSNumber *id_p = [NSNumber numberWithInt:0];
+    if(value[@"id"] != (id)[NSNull null]) {
+        id_p = (NSNumber *) value[@"id"];
+    }
+    bleDataCharacteristicMessage.id_p = [id_p doubleValue];
     bleDataCharacteristicMessage.uuid = value[@"uuid"];
     bleDataCharacteristicMessage.deviceId = value[@"deviceID"];
     bleDataCharacteristicMessage.serviceUuid = value[@"serviceUUID"];
@@ -124,6 +141,8 @@
 
 + (BleDataMonitorCharacteristicMessage * _Nonnull)  conevrtToMonitorCharacteristicMessage: (id _Nonnull) value {
     BleDataMonitorCharacteristicMessage* bleDataMonitorCharacteristicMessage = [[BleDataMonitorCharacteristicMessage alloc] init];
+    bleDataMonitorCharacteristicMessage.transactionId = value[2];
+    bleDataMonitorCharacteristicMessage.characteristicMessage = [Converter convertToBleDataCharacteristicMessage:value[1]];
     return bleDataMonitorCharacteristicMessage;
 }
 

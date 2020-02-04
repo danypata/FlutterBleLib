@@ -1,7 +1,6 @@
 part of flutter_ble_lib;
 
 class BleDevice {
-
   String id;
   String name;
   int mtu;
@@ -11,16 +10,17 @@ class BleDevice {
   BleDevice(this.id, this.name, this.mtu, this.rssi, this.isConnected);
 
   static BleDevice fromMessage(bleData.BleDeviceMessage bleDeviceMessage) =>
-      new BleDevice(bleDeviceMessage.id, bleDeviceMessage.name,
-          bleDeviceMessage.mtu, bleDeviceMessage.rssi,
+      new BleDevice(
+          bleDeviceMessage.id,
+          bleDeviceMessage.name,
+          bleDeviceMessage.mtu,
+          bleDeviceMessage.rssi,
           bleDeviceMessage.isConnected);
 
   @override
   String toString() {
     return "BleDevice : [macAddress = $id, name = $name, mtu = $mtu, rssi = $rssi, isConnected = $isConnected]";
   }
-
-
 }
 
 class ScanResult {
@@ -29,11 +29,10 @@ class ScanResult {
   Int64 timestampNanos;
   int scanCallbackType;
   int mtu;
+  double scanSeconds;
 
-  ScanResult(this.bleDevice,
-      this.rssi,
-      this.timestampNanos,
-      this.scanCallbackType);
+  ScanResult(
+      this.bleDevice, this.rssi, this.timestampNanos, this.scanCallbackType);
 
   static ScanResult fromMessage(bleData.ScanResultMessage scanResultMessage) =>
       new ScanResult(
@@ -41,7 +40,6 @@ class ScanResult {
           scanResultMessage.rssi,
           scanResultMessage.timestampNanos,
           scanResultMessage.scanCallbackTypeMessage);
-
 
   bool hasTheSameDeviceAs(ScanResult scanResult) =>
       this.bleDevice.id == scanResult.bleDevice.id;
@@ -68,43 +66,42 @@ enum LogLevel {
 class LogLevelConverter {
   static LogLevel fromMessage(bleData.LogLevelMessage logLevelMessage) {
     switch (logLevelMessage) {
-      case bleData.LogLevelMessage.VERBOSE :
+      case bleData.LogLevelMessage.VERBOSE:
         return LogLevel.VERBOSE;
-      case bleData.LogLevelMessage.DEBUG :
+      case bleData.LogLevelMessage.DEBUG:
         return LogLevel.DEBUG;
-      case bleData.LogLevelMessage.INFO :
+      case bleData.LogLevelMessage.INFO:
         return LogLevel.INFO;
-      case bleData.LogLevelMessage.WARNING :
+      case bleData.LogLevelMessage.WARNING:
         return LogLevel.WARNING;
-      case bleData.LogLevelMessage.ERROR :
+      case bleData.LogLevelMessage.ERROR:
         return LogLevel.ERROR;
-      case bleData.LogLevelMessage.NONE :
+      case bleData.LogLevelMessage.NONE:
         return LogLevel.NONE;
-      default :
+      default:
         throw new Exception("Invalid argument $logLevelMessage");
     }
   }
 
   static bleData.LogLevelMessage toMessage(LogLevel logLevel) {
     switch (logLevel) {
-      case LogLevel.VERBOSE :
+      case LogLevel.VERBOSE:
         return bleData.LogLevelMessage.VERBOSE;
-      case LogLevel.DEBUG :
+      case LogLevel.DEBUG:
         return bleData.LogLevelMessage.DEBUG;
-      case LogLevel.INFO :
+      case LogLevel.INFO:
         return bleData.LogLevelMessage.INFO;
-      case LogLevel.WARNING :
+      case LogLevel.WARNING:
         return bleData.LogLevelMessage.WARNING;
-      case LogLevel.ERROR :
+      case LogLevel.ERROR:
         return bleData.LogLevelMessage.ERROR;
-      case LogLevel.NONE :
+      case LogLevel.NONE:
         return bleData.LogLevelMessage.NONE;
-      default :
+      default:
         throw new Exception("Invalid argument $logLevel");
     }
   }
 }
-
 
 enum BluetoothState {
   UNKNOWN,
@@ -115,24 +112,23 @@ enum BluetoothState {
   POWERED_ON,
 }
 
-
 class BluetoothStateConverter {
   static BluetoothState fromMessage(
       bleData.BluetoothStateMessage bluetoothStateMessage) {
     switch (bluetoothStateMessage) {
-      case bleData.BluetoothStateMessage.UNKNOWN :
+      case bleData.BluetoothStateMessage.UNKNOWN:
         return BluetoothState.UNKNOWN;
-      case bleData.BluetoothStateMessage.RESETTING :
+      case bleData.BluetoothStateMessage.RESETTING:
         return BluetoothState.RESETTING;
-      case bleData.BluetoothStateMessage.UNSUPPORTED :
+      case bleData.BluetoothStateMessage.UNSUPPORTED:
         return BluetoothState.UNSUPPORTED;
-      case bleData.BluetoothStateMessage.UNAUTHORIZED :
+      case bleData.BluetoothStateMessage.UNAUTHORIZED:
         return BluetoothState.UNAUTHORIZED;
-      case bleData.BluetoothStateMessage.POWERED_OFF :
+      case bleData.BluetoothStateMessage.POWERED_OFF:
         return BluetoothState.POWERED_OFF;
-      case bleData.BluetoothStateMessage.POWERED_ON :
+      case bleData.BluetoothStateMessage.POWERED_ON:
         return BluetoothState.POWERED_ON;
-      default :
+      default:
         throw new Exception("Invalid argument $bluetoothStateMessage");
     }
   }
@@ -140,19 +136,19 @@ class BluetoothStateConverter {
   static bleData.BluetoothStateMessage toMessage(
       BluetoothState bluetoothState) {
     switch (bluetoothState) {
-      case BluetoothState.UNKNOWN :
+      case BluetoothState.UNKNOWN:
         return bleData.BluetoothStateMessage.UNKNOWN;
-      case BluetoothState.RESETTING :
+      case BluetoothState.RESETTING:
         return bleData.BluetoothStateMessage.RESETTING;
-      case BluetoothState.UNSUPPORTED :
+      case BluetoothState.UNSUPPORTED:
         return bleData.BluetoothStateMessage.UNSUPPORTED;
-      case BluetoothState.UNAUTHORIZED :
+      case BluetoothState.UNAUTHORIZED:
         return bleData.BluetoothStateMessage.UNAUTHORIZED;
-      case BluetoothState.POWERED_OFF :
+      case BluetoothState.POWERED_OFF:
         return bleData.BluetoothStateMessage.POWERED_OFF;
-      case BluetoothState.POWERED_ON :
+      case BluetoothState.POWERED_ON:
         return bleData.BluetoothStateMessage.POWERED_ON;
-      default :
+      default:
         throw new Exception("Invalid argument $bluetoothState");
     }
   }
@@ -179,9 +175,9 @@ class BleService {
   }
 }
 
-
 class Characteristic {
-  double id ;
+  double id;
+
   String uuid;
   int serviceId;
   String serviceUuid;
@@ -194,13 +190,22 @@ class Characteristic {
   bool isNotifing;
   String value;
 
-  Characteristic(this.id, this.uuid, this.serviceId, this.serviceUuid,
-      this.deviceId, this.isReadable, this.isWritableWithResponse,
-      this.isWritableWithoutResponse, this.isNotificable, this.isIndicatable,
-      this.isNotifing, this.value);
+  Characteristic(
+      this.id,
+      this.uuid,
+      this.serviceId,
+      this.serviceUuid,
+      this.deviceId,
+      this.isReadable,
+      this.isWritableWithResponse,
+      this.isWritableWithoutResponse,
+      this.isNotificable,
+      this.isIndicatable,
+      this.isNotifing,
+      this.value);
 
-
-  static Characteristic fromMessage(bleData.CharacteristicMessage characteristicMessage) =>
+  static Characteristic fromMessage(
+          bleData.CharacteristicMessage characteristicMessage) =>
       new Characteristic(
           characteristicMessage.id,
           characteristicMessage.uuid,
@@ -232,20 +237,19 @@ class Characteristic {
     return result.toRadixString(2);
   }
 }
-class MonitorCharacteristic {
 
+class MonitorCharacteristic {
   String transactionId;
   Characteristic characteristic;
 
   MonitorCharacteristic(String this.transactionId, this.characteristic);
 
   static MonitorCharacteristic fromMessage(
-      bleData.MonitorCharacteristicMessage monitorCharacteristicMessage) =>
+          bleData.MonitorCharacteristicMessage monitorCharacteristicMessage) =>
       new MonitorCharacteristic(
           monitorCharacteristicMessage.transactionId,
           Characteristic.fromMessage(
-              monitorCharacteristicMessage.characteristicMessage)
-      );
+              monitorCharacteristicMessage.characteristicMessage));
 
   @override
   String toString() {

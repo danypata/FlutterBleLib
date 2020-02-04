@@ -9,7 +9,9 @@ import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.Looper;
 import android.util.Base64;
+import android.util.Log;
 import android.util.SparseArray;
 
 import androidx.annotation.NonNull;
@@ -47,6 +49,7 @@ import java.util.UUID;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
 import io.reactivex.SingleObserver;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Action;
 import io.reactivex.functions.Consumer;
@@ -137,6 +140,7 @@ public class BleHelper {
         }
         scanDevicesSubscription = rxBleClient
                 .scanBleDevices(scanSettingsWrapper.getScanSetting(), scanSettingsWrapper.getScanFilters())
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Consumer<ScanResult>() {
 
                     @Override
@@ -177,6 +181,7 @@ public class BleHelper {
                         return rxAndroidBleAdapterStateToReactNativeBluetoothState(bleAdapterState);
                     }
                 })
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Consumer<BleData.BluetoothStateMessage>() {
                     @Override
                     public void accept(BleData.BluetoothStateMessage bluetoothStateMessage) throws Exception {
@@ -256,30 +261,33 @@ public class BleHelper {
             final SafeAction<BleData.BleDeviceMessage> safeAction = new SafeAction<>(successAction, errorAction);
             connection
                     .requestMtu(mtu)
+
                     .doOnDispose(new Action() {
                         @Override
                         public void run() throws Exception {
                             safeAction.onError(new Throwable("Reject"));
                             transactions.removeTransactionSubscription(transactionId);
                         }
-                    }).subscribe(new SingleObserver<Integer>() {
-                @Override
-                public void onSubscribe(Disposable d) {
-                    transactions.replaceTransactionSubscription(transactionId, d);
-                }
+                    })
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(new SingleObserver<Integer>() {
+                        @Override
+                        public void onSubscribe(Disposable d) {
+                            transactions.replaceTransactionSubscription(transactionId, d);
+                        }
 
-                @Override
-                public void onSuccess(Integer integer) {
-                    safeAction.onSuccess(converter.convertToBleDeviceMessage(device.getRxBleDevice(), integer, NO_VALUE));
-                    transactions.removeTransactionSubscription(transactionId);
-                }
+                        @Override
+                        public void onSuccess(Integer integer) {
+                            safeAction.onSuccess(converter.convertToBleDeviceMessage(device.getRxBleDevice(), integer, NO_VALUE));
+                            transactions.removeTransactionSubscription(transactionId);
+                        }
 
-                @Override
-                public void onError(Throwable e) {
-                    safeAction.onError(e);
-                    transactions.removeTransactionSubscription(transactionId);
-                }
-            });
+                        @Override
+                        public void onError(Throwable e) {
+                            safeAction.onError(e);
+                            transactions.removeTransactionSubscription(transactionId);
+                        }
+                    });
         } else {
             successAction.onSuccess(converter.convertToBleDeviceMessage(device.getRxBleDevice(), connection.getMtu(), NO_VALUE));
         }
@@ -310,24 +318,26 @@ public class BleHelper {
                         transactions.removeTransactionSubscription(transactionId);
                     }
 
-                }).subscribe(new SingleObserver<Integer>() {
-            @Override
-            public void onSubscribe(Disposable d) {
-                transactions.replaceTransactionSubscription(transactionId, d);
-            }
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new SingleObserver<Integer>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        transactions.replaceTransactionSubscription(transactionId, d);
+                    }
 
-            @Override
-            public void onSuccess(Integer rssi) {
-                safeAction.onSuccess(converter.convertToBleDeviceMessage(device.getRxBleDevice(), NO_VALUE, rssi));
-                transactions.removeTransactionSubscription(transactionId);
-            }
+                    @Override
+                    public void onSuccess(Integer rssi) {
+                        safeAction.onSuccess(converter.convertToBleDeviceMessage(device.getRxBleDevice(), NO_VALUE, rssi));
+                        transactions.removeTransactionSubscription(transactionId);
+                    }
 
-            @Override
-            public void onError(Throwable e) {
-                safeAction.onError(e);
-                transactions.removeTransactionSubscription(transactionId);
-            }
-        });
+                    @Override
+                    public void onError(Throwable e) {
+                        safeAction.onError(e);
+                        transactions.removeTransactionSubscription(transactionId);
+                    }
+                });
     }
 
 
@@ -367,6 +377,8 @@ public class BleHelper {
                     }
                 });
 
+
+        final int[] mtuRequested = {23};
         if (requestMtu > 0) {
             connect = connect.flatMap(new Function<RxBleConnection, Observable<RxBleConnection>>() {
                 @Override
@@ -377,6 +389,7 @@ public class BleHelper {
                                 .map(new Function<Integer, RxBleConnection>() {
                                     @Override
                                     public RxBleConnection apply(Integer integer) {
+                                        mtuRequested[0] = integer;
                                         return rxBleConnection;
                                     }
                                 }).toObservable();
@@ -388,6 +401,7 @@ public class BleHelper {
         }
 
         connect
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<RxBleConnection>() {
 
                     @Override
@@ -408,10 +422,15 @@ public class BleHelper {
 
                     @Override
                     public void onNext(RxBleConnection connection) {
+                        if (Looper.myLooper() == Looper.getMainLooper()) {
+                            Log.e("BLE", "CALL ON MAIN THREAD");
+                        } else {
+                            Log.e("BLE", "CALL ON BG THREDAD THREAD");
+                        }
                         Device deviceWrapper = new Device(device, connection);
                         cleanServicesAndCharacteristicsForDevice(deviceWrapper);
                         connectedDevices.put(device.getMacAddress(), deviceWrapper);
-                        safeAction.onSuccess(converter.convertToBleDeviceMessage(device, requestMtu, NO_VALUE));
+                        safeAction.onSuccess(converter.convertToBleDeviceMessage(device, mtuRequested[0], NO_VALUE));
                     }
                 });
 
@@ -420,15 +439,25 @@ public class BleHelper {
 
 
     private void onDeviceDisconnected(RxBleDevice device) {
+        Log.e("BLE", "DISCONNECTED");
         final Device connectedDevice = connectedDevices.remove(device.getMacAddress());
         if (connectedDevice == null) {
+            Log.e("BLE", "DISCONNECTED == null");
             return;
         }
 
         cleanServicesAndCharacteristicsForDevice(connectedDevice);
         final RxBleConnection connection = connectedDevice.getConnection();
         int mtu = connection != null ? connection.getMtu() : NO_VALUE;
-        sendEvent(Event.DisconnectionEvent, converter.convertToBleDeviceMessage(device, mtu, NO_VALUE));
+        BleData.BleDeviceMessage message = converter.convertToBleDeviceMessage(device, mtu, NO_VALUE);
+        message = BleData.BleDeviceMessage.newBuilder()
+                .setId(message.getId())
+                .setName(message.getName())
+                .setMtu(message.getMtu())
+                .setRssi(message.getRssi())
+                .setIsConnected(false)
+                .build();
+        sendEvent(Event.DisconnectionEvent, message);
         connectingDevices.removeConnectingDeviceSubscription(device.getMacAddress());
     }
 
@@ -467,6 +496,7 @@ public class BleHelper {
 
         connection
                 .discoverServices()
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SingleObserver<RxBleDeviceServices>() {
 
 
@@ -489,6 +519,7 @@ public class BleHelper {
                             }
                         }
                         device.setServices(services);
+                        safeAction.onSuccess(converter.convertToBleDeviceMessage(device));
                     }
 
                     @Override
@@ -662,7 +693,7 @@ public class BleHelper {
                     e));
             return;
         }
-
+        Log.e("BLE", "WRITE WITH RESPONSE: " + response);
         characteristic.getNativeCharacteristic()
                 .setWriteType(response ?
                         BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT :
@@ -683,6 +714,7 @@ public class BleHelper {
         if (connection == null) {
             return;
         }
+        Log.e("WRITE:", "" + value.length);
         connection
                 .writeCharacteristic(characteristic.getNativeCharacteristic(), value)
                 .doOnDispose(new Action() {
@@ -692,6 +724,7 @@ public class BleHelper {
                         transactions.removeTransactionSubscription(transactionId);
                     }
                 })
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SingleObserver<byte[]>() {
 
 
@@ -779,7 +812,7 @@ public class BleHelper {
         if (connection == null) {
             return;
         }
-
+        Log.e("BLE_LIB", "PREPARE TO READ");
         connection
                 .readCharacteristic(characteristic.getNativeCharacteristic())
                 .doOnDispose(new Action() {
@@ -789,6 +822,7 @@ public class BleHelper {
                         transactions.removeTransactionSubscription(transactionId);
                     }
                 })
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SingleObserver<byte[]>() {
 
                     @Override
@@ -805,6 +839,8 @@ public class BleHelper {
 
                     @Override
                     public void onError(Throwable e) {
+                        Log.e("BLE_LIB", "WELL FUCKING FUCK");
+                        e.printStackTrace();
                         if (e instanceof BleCharacteristicNotFoundException) {
                             safeAction.onError(new CharacteristicNotFoundException(
                                     "Characteristic not found for :"
@@ -873,12 +909,12 @@ public class BleHelper {
             return;
         }
 
-        final BluetoothGattCharacteristic gattCharacteristic = characteristic.getNativeCharacteristic();
 
+        final BluetoothGattCharacteristic gattCharacteristic = characteristic.getNativeCharacteristic();
         final int properties = gattCharacteristic.getProperties();
         final boolean notifications = (properties & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0;
         final boolean indications = (properties & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0;
-
+        Log.e("FUCK", "FUCKING SAFE MONITOR SHIT");
         Observable.just(connection)
                 .flatMap(new Function<RxBleConnection, Observable<Observable<byte[]>>>() {
                     @Override
@@ -897,8 +933,10 @@ public class BleHelper {
                         BluetoothGattDescriptor cccDescriptor =
                                 gattCharacteristic.getDescriptor(Characteristic.CLIENT_CHARACTERISTIC_CONFIG_UUID);
                         if (cccDescriptor == null) {
+                            Log.e("FUCK", "CC is null");
                             return observable;
                         } else {
+                            Log.e("FUCK", "CC IS NOT NULL");
                             byte[] enableValue = notifications
                                     ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
                                     : BluetoothGattDescriptor.ENABLE_INDICATION_VALUE;
@@ -915,6 +953,7 @@ public class BleHelper {
                         transactions.removeTransactionSubscription(transactionId);
                     }
                 })
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<byte[]>() {
 
                     @Override

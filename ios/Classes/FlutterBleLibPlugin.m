@@ -292,7 +292,7 @@
     NSString* serviceUUID = methodData.arguments[@"serviceUUID"];
     NSString* characteristicUUID = methodData.arguments[@"characteristicUUID"];
     NSString* valueBase64 = methodData.arguments[@"valueBase64"];
-    BOOL response = methodData.arguments[@"response"];
+    BOOL response = [methodData.arguments[@"response"] boolValue];
     NSString* transactionId = methodData.arguments[@"transactionId"];
     [_manager writeCharacteristicForDevice:deviceId serviceUUID:serviceUUID characteristicUUID:characteristicUUID valueBase64:valueBase64
                                   response:response transactionId:transactionId
@@ -307,7 +307,7 @@
     NSNumber* serviceIdentifier = methodData.arguments[@"serviceIdentifier"];
     NSString* characteristicUUID = methodData.arguments[@"characteristicUUID"];
     NSString* valueBase64 = methodData.arguments[@"valueBase64"];
-    BOOL response = methodData.arguments[@"response"];
+    BOOL response = [methodData.arguments[@"response"] boolValue];
     NSString* transactionId = methodData.arguments[@"transactionId"];
     [_manager writeCharacteristicForService:serviceIdentifier.doubleValue characteristicUUID:characteristicUUID valueBase64:valueBase64
                                   response:response transactionId:transactionId
@@ -322,7 +322,7 @@
 -(void) writeCharacteristic: (FlutterMethodCall *) methodData result:(FlutterResult) result {
     NSNumber* characteristicIdentifier = methodData.arguments[@"characteristicIdentifier"];
     NSString* valueBase64 = methodData.arguments[@"valueBase64"];
-    BOOL response = methodData.arguments[@"response"];
+    BOOL response = [methodData.arguments[@"response"] boolValue];
     NSString* transactionId = methodData.arguments[@"transactionId"];
     [_manager writeCharacteristic:characteristicIdentifier.doubleValue valueBase64:valueBase64 response:response transactionId:transactionId
                                     resolve:^(id _Nullable characteristic) {

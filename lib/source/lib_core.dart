@@ -76,10 +76,14 @@ class FlutterBleLib {
   }
 
   Stream<ScanResult> startDeviceScan(
-      int scanMode, int callbackType, List<String> uuids) async* {
+      ScanMode scanMode, CallbackType callbackType, List<String> uuids,
+      {Duration timeout}) async* {
+    if (timeout == null) {
+      timeout = Duration(seconds: 10);
+    }
     var settings = bleData.ScanDataMessage.create()
-      ..scanMode = scanMode
-      ..callbackType = callbackType;
+      ..scanMode = scanMode._value
+      ..callbackType = callbackType._value;
     if (uuids != null) {
       uuids.forEach(settings.uuids.add);
     }
@@ -88,7 +92,7 @@ class FlutterBleLib {
 
     controller = new StreamController(
       onListen: () {
-        new Future.delayed(new Duration(seconds: 10), () => controller.close());
+        new Future.delayed(timeout, () => controller.close());
       },
       onCancel: () {
         subscription.cancel();
@@ -373,5 +377,45 @@ class FlutterBleLib {
             (data) => new bleData.MonitorCharacteristicMessage.fromBuffer(data))
         .map((monitorCharacteristicMessage) =>
             MonitorCharacteristic.fromMessage(monitorCharacteristicMessage));
+  }
+}
+
+class ScanMode {
+  final int _value;
+
+  ScanMode._(this._value);
+
+  factory ScanMode.oportunistic() {
+    return ScanMode._(-1);
+  }
+
+  factory ScanMode.lowPower() {
+    return ScanMode._(0);
+  }
+
+  factory ScanMode.balanced() {
+    return ScanMode._(1);
+  }
+
+  factory ScanMode.lowLatency() {
+    return ScanMode._(2);
+  }
+}
+
+class CallbackType {
+  final int _value;
+
+  CallbackType._(this._value);
+
+  factory CallbackType.allMatches() {
+    return CallbackType._(1);
+  }
+
+  factory CallbackType.firstMatch() {
+    return CallbackType._(2);
+  }
+
+  factory CallbackType.matchLost() {
+    return CallbackType._(4);
   }
 }

@@ -2,6 +2,7 @@ package com.polidea.flutterblelib;
 
 
 import android.content.Context;
+import android.util.Log;
 
 import com.google.protobuf.MessageLite;
 import com.polidea.flutterblelib.chanelhandler.BluetoothStateHandler;
@@ -98,6 +99,7 @@ public class FlutterBleLibPlugin implements MethodCallHandler, EventDelegate {
             }
             case BleMethod.stopDeviceScan: {
                 bleHelper.stopDeviceScan();
+                result.success(1);
                 return;
             }
             case BleMethod.requestMTUForDevice: {
@@ -194,6 +196,7 @@ public class FlutterBleLibPlugin implements MethodCallHandler, EventDelegate {
                 //TODO
                 break;
             case DisconnectionEvent:
+                Log.e("BLE", "WILL DISOCNNECT EVENT");
                 deviceConnectionChangedHandler.handleBluetoothState((BleData.BleDeviceMessage) value);
                 break;
         }

@@ -9,7 +9,7 @@
 
 + (BleDataBluetoothStateMessage)convertToBleDataBluetoothStateMessageFromString:(NSString* _Nonnull)stateAsString;
 
-+ (BleDataScanResultMessage* _Nonnull) convertToScanResultMessage:(id _Nonnull) value;
++ (BleDataScanResultMessage* _Nonnull) convertToScanResultMessage:(NSArray * _Nonnull) value;
 
 + (BleDataBleDeviceMessage* _Nonnull) convertToBleDeviceMessage:(id _Nonnull) value;
 

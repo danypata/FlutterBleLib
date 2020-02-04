@@ -194,6 +194,9 @@ public class BleClientManager : NSObject {
             }
         }
 
+//TODO: DAN CHANGES
+        rxOptions[CBCentralManagerScanOptionAllowDuplicatesKey] = true
+
         // If passed iOS will show only devices with specified service UUIDs.
         var uuids: [CBUUID]? = nil
         if let filteredUUIDs = filteredUUIDs {
@@ -209,6 +212,7 @@ public class BleClientManager : NSObject {
             .subscribe(onNext: { [weak self] scannedPeripheral in
                 self?.dispatchEvent(BleEvent.scanEvent, value: [NSNull(), scannedPeripheral.asJSObject])
             }, onError: { [weak self] errorType in
+                print("\(errorType)")
                 self?.dispatchEvent(BleEvent.scanEvent, value: errorType.bleError.toJSResult)
             })
     }
@@ -269,7 +273,7 @@ public class BleClientManager : NSObject {
             BleError.peripheralNotConnected(deviceIdentifier).callReject(reject)
             return
         }
-
+        peripheral
         resolve(peripheral.asJSObject())
     }
 
@@ -644,15 +648,18 @@ public class BleClientManager : NSObject {
                                                                     response: Bool,
                                                                transactionId: String,
                                                                      promise: SafePromise) {
+        printMessage("PREPARE SAFE WRITE")
         let disposable = characteristicObservable
             .flatMap {
                 $0.writeValue(value, type: response ? .withResponse : .withoutResponse)
             }
             .subscribe(
                 onNext: { characteristic in
+                self.printMessage("characteristic \(characteristic)")
                     promise.resolve(characteristic.asJSObject)
                 },
                 onError: { error in
+                    self.printMessage("WE GOT ERROR \(error)")
                     error.bleError.callReject(promise)
                 },
                 onCompleted: nil,
@@ -663,6 +670,11 @@ public class BleClientManager : NSObject {
             )
 
         transactions.replaceDisposable(transactionId, disposable: disposable)
+    }
+
+    private func printMessage(_ message: String) {
+        print("FROM DAN ==========>>>>>>>> \(message)")
+        
     }
 
     // MARK: Monitoring ------------------------------------------------------------------------------------------------
@@ -734,10 +746,12 @@ public class BleClientManager : NSObject {
                     self?.dispatchEvent(BleEvent.readEvent, value: [NSNull(), characteristic.asJSObject, transactionId])
                 }
             }, onError: { [weak self] error in
+                
                 self?.dispatchEvent(BleEvent.readEvent, value: [error.bleError.toJS, NSNull(), transactionId])
             }, onCompleted: {
-
+                print("ON MONITOR COMPLETED")
             }, onDisposed: { [weak self] in
+                print("ON MONITOR DISPOSED")
                 self?.transactions.removeDisposable(transactionId)
                 promise.resolve(nil)
             })
