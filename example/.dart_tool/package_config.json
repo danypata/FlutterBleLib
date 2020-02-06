@@ -129,9 +129,9 @@
     },
     {
       "name": "rxdart",
-      "rootUri": "file:///Users/dan/.pub-cache/hosted/pub.dartlang.org/rxdart-0.22.6",
+      "rootUri": "file:///Users/dan/.pub-cache/hosted/pub.dartlang.org/rxdart-0.23.1",
       "packageUri": "lib/",
-      "languageVersion": "2.0"
+      "languageVersion": "2.6"
     },
     {
       "name": "sky_engine",
@@ -206,7 +206,7 @@
       "languageVersion": "2.7"
     }
   ],
-  "generated": "2020-01-12T11:32:15.064298Z",
+  "generated": "2020-02-06T18:56:42.187504Z",
   "generator": "pub",
   "generatorVersion": "2.7.0"
 }
