@@ -71,7 +71,7 @@
     
   if([FBLCreateClient isEqualToString:call.method]) {
       //TODO flutter should pass something here.
-      [self createClient:nil result:result];
+      [self createClient:call.arguments[@"restoreStateIdentifier"] result:result];
   } else if([FBLDestroyClient isEqualToString:call.method]) {
       [self destroyClient];
   } else if([FBLSetLogLevel isEqualToString:call.method]) {
