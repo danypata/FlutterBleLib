@@ -7,6 +7,11 @@ class BleDevice {
   int rssi;
   bool isConnected = false;
 
+  String get displayName =>
+      name
+          .split("-")
+          .last;
+
   BleDevice(this.id, this.name, this.mtu, this.rssi, this.isConnected);
 
   static BleDevice fromMessage(bleData.BleDeviceMessage bleDeviceMessage) =>
@@ -31,8 +36,8 @@ class ScanResult {
   int mtu;
   double scanSeconds;
 
-  ScanResult(
-      this.bleDevice, this.rssi, this.timestampNanos, this.scanCallbackType);
+  ScanResult(this.bleDevice, this.rssi, this.timestampNanos,
+      this.scanCallbackType);
 
   static ScanResult fromMessage(bleData.ScanResultMessage scanResultMessage) =>
       new ScanResult(
@@ -190,8 +195,7 @@ class Characteristic {
   bool isNotifing;
   String value;
 
-  Characteristic(
-      this.id,
+  Characteristic(this.id,
       this.uuid,
       this.serviceId,
       this.serviceUuid,
@@ -205,7 +209,7 @@ class Characteristic {
       this.value);
 
   static Characteristic fromMessage(
-          bleData.CharacteristicMessage characteristicMessage) =>
+      bleData.CharacteristicMessage characteristicMessage) =>
       new Characteristic(
           characteristicMessage.id,
           characteristicMessage.uuid,
@@ -245,7 +249,7 @@ class MonitorCharacteristic {
   MonitorCharacteristic(String this.transactionId, this.characteristic);
 
   static MonitorCharacteristic fromMessage(
-          bleData.MonitorCharacteristicMessage monitorCharacteristicMessage) =>
+      bleData.MonitorCharacteristicMessage monitorCharacteristicMessage) =>
       new MonitorCharacteristic(
           monitorCharacteristicMessage.transactionId,
           Characteristic.fromMessage(
@@ -253,6 +257,7 @@ class MonitorCharacteristic {
 
   @override
   String toString() {
-    return "MonitorCharacteristic : [transactionId = $transactionId, characteristic = ${characteristic.toString()}";
+    return "MonitorCharacteristic : [transactionId = $transactionId, characteristic = ${characteristic
+        .toString()}";
   }
 }

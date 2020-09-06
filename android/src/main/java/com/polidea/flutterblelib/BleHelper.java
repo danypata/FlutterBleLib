@@ -9,7 +9,6 @@ import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
-import android.os.Looper;
 import android.util.Base64;
 import android.util.Log;
 import android.util.SparseArray;
@@ -422,11 +421,6 @@ public class BleHelper {
 
                     @Override
                     public void onNext(RxBleConnection connection) {
-                        if (Looper.myLooper() == Looper.getMainLooper()) {
-                            Log.e("BLE", "CALL ON MAIN THREAD");
-                        } else {
-                            Log.e("BLE", "CALL ON BG THREDAD THREAD");
-                        }
                         Device deviceWrapper = new Device(device, connection);
                         cleanServicesAndCharacteristicsForDevice(deviceWrapper);
                         connectedDevices.put(device.getMacAddress(), deviceWrapper);
@@ -914,7 +908,7 @@ public class BleHelper {
         final int properties = gattCharacteristic.getProperties();
         final boolean notifications = (properties & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0;
         final boolean indications = (properties & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0;
-        Log.e("FUCK", "FUCKING SAFE MONITOR SHIT");
+        transactions.removeTransactionSubscription(transactionId);
         Observable.just(connection)
                 .flatMap(new Function<RxBleConnection, Observable<Observable<byte[]>>>() {
                     @Override
