@@ -17,7 +17,7 @@ A new flutter plugin project.
   s.requires_arc = ['Classes/BleClientManager/*', 'Classes/Converter.m', 'Classes/FlutterBleLibPlugin.m', 'Classes/Methods.m', 'Classes/Namespace.m']
   s.dependency 'Flutter'
   s.dependency 'RxBluetoothKit', '4.0.2'
-  s.dependency 'Protobuf', '3.5.0'
+  s.dependency 'Protobuf', '3.9'
   s.swift_version = '4.1.0'
 
   s.ios.deployment_target = '8.0'
