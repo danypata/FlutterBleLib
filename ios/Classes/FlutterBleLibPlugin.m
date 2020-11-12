@@ -63,6 +63,9 @@
     [bluetoothStateChanel setStreamHandler:instance.bluetoothStateHandler];
     [deviceConnectionChangeChannel setStreamHandler:instance.deviceConnectionChangeHandler];
     [monitorCharacteristicChannel setStreamHandler:instance.monitorCharacteristicHandler];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(destroyClient) name:UIApplicationWillTerminateNotification
+                                               object:nil];
 }
 
 
