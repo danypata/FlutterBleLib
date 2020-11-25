@@ -158,7 +158,7 @@ public class BleClientManager : NSObject {
         // When state is to be restored update all caches.
         restoredState.peripherals.forEach { peripheral in
             connectedPeripherals[peripheral.identifier] = peripheral
-
+                
             _ = manager.monitorDisconnection(for: peripheral)
                 .take(1)
                 .subscribe(

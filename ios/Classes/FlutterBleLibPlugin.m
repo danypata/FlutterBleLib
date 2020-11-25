@@ -63,9 +63,6 @@
     [bluetoothStateChanel setStreamHandler:instance.bluetoothStateHandler];
     [deviceConnectionChangeChannel setStreamHandler:instance.deviceConnectionChangeHandler];
     [monitorCharacteristicChannel setStreamHandler:instance.monitorCharacteristicHandler];
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(destroyClient) name:UIApplicationWillTerminateNotification
-                                               object:nil];
 }
 
 
@@ -131,6 +128,7 @@
 }
 
 - (void)dispatchEvent:(NSString * _Nonnull)name value:(id _Nonnull)value {
+    NSLog(@"Dispatch event: %@ %@", name, value);
     if([BleEvent.scanEvent isEqualToString: name]) {
         [_scanDevicesHandler handleScanDevice : [Converter convertToScanResultMessage:value]];
     } else if([BleEvent.stateChangeEvent isEqualToString: name]) {
@@ -143,9 +141,14 @@
 }
 
 - (void)createClient:(NSString*)restoreIdentifierKey  result: (FlutterResult) result  {
+    if(restoreIdentifierKey.length == 0) {
+        restoreIdentifierKey = nil;
+    }
     _manager = [[BleClientManager alloc] initWithQueue:dispatch_get_main_queue()
                                   restoreIdentifierKey:restoreIdentifierKey];
      _manager.delegate = self;
+    [_manager setLogLevel:@"verbose"];
+    
     result(nil);
 }
 
@@ -193,8 +196,9 @@
 - (void) connectToDevice:(FlutterStandardTypedData*) device result: (FlutterResult) result {
     
     NSError *error = nil;
+    NSString *deviceID = [[[BleDataBleDeviceMessage alloc] initWithData:[device data] error: &error] id_p];
     [_manager
-     connectToDevice:[[[BleDataBleDeviceMessage alloc] initWithData:[device data] error: &error] id_p]
+     connectToDevice: deviceID
      options:nil
      resolve:^(id _Nullable device) {
          BleDataBleDeviceMessage* bleDeviceMessage = [Converter convertToBleDeviceMessage: device];
@@ -202,6 +206,7 @@
      }
      reject:^(NSString * _Nullable code, NSString * _Nullable message, NSError * _Nullable error) {
          result([FlutterError errorWithCode:code message:message details:@"connectToDevice method"]);
+    
      }
     ];
     if(error != nil) {
