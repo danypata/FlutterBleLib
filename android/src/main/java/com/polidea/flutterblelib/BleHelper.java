@@ -405,7 +405,7 @@ public class BleHelper {
 
                     @Override
                     public void onError(Throwable e) {
-                        safeAction.onError(e);
+//                        safeAction.onError(e);
                         onDeviceDisconnected(device);
                     }
 
